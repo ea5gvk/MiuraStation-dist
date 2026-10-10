@@ -1,0 +1,123 @@
+MiuraStation
+============
+
+Software TETRA base station / Estación base TETRA por software.
+Copyright 2026 the MiuraStation developers: Joaquin EA5GVK, Rafa EA7KEN,
+Iñaki EA8DJI.
+https://github.com/ea5gvk/MiuraStation-dist
+
+MiuraStation is licensed under the Apache License 2.0 (see `LICENSE`), except
+for the Nexus-BS components listed below, which keep their own SPDX license
+headers and may be used for noncommercial purposes only (PolyForm
+Noncommercial License 1.0.0). Every MiuraStation binary includes them, so
+MiuraStation as a whole may be used for noncommercial purposes only.
+
+Origin
+------
+
+MiuraStation is an independent project. It is not FlowStation, BlueStation or
+Nexus-BS, and it is not endorsed by their authors. It is built on their work:
+
+- FlowStation, by Razvan Zeces (YO6RZV) and the FlowStation contributors.
+  Copyright 2026, Razvan Zeces / FlowStation.Dev. Apache License 2.0.
+  https://github.com/razvanzeces/flowstation
+  MiuraStation is a modified work of FlowStation: it started from the `miura`
+  line of ea5gvk/flowstation, a fork of FlowStation, at commit ed2b244 (that
+  branch is no longer published).
+- BlueStation (tetra-bluestation), by Wouter Bokslag / Midnight Blue and the
+  BlueStation contributors. Apache License 2.0.
+  https://github.com/MidnightBlueLabs/tetra-bluestation
+  FlowStation, and therefore MiuraStation, is a modified work of BlueStation.
+- Nexus-BS, by Chris YO3TCO / Nexus-BS Project (see below).
+
+Modification notice (Apache License 2.0, section 4(b)): the files inherited
+from FlowStation and BlueStation have been modified by the MiuraStation
+developers, Joaquin EA5GVK, Rafa EA7KEN and Iñaki EA8DJI: first in their fork
+of FlowStation and, from MiuraStation v1.0.0 on, in the MiuraStation source
+tree. `CHANGELOG.md` lists what MiuraStation adds and changes. The changes
+made to the Nexus-BS files are described in their `SPDX-FileComment` lines
+and in `CHANGES-NEXUS.md`.
+
+Nexus-BS components
+-------------------
+
+Required Notice: Copyright (c) Chris YO3TCO / Nexus-BS Project.
+
+The files below were copied or adapted from Nexus-BS
+(https://github.com/invictus737/nexus-bs) with the permission of Chris YO3TCO.
+They keep their original SPDX headers and are licensed under the PolyForm
+Noncommercial License 1.0.0, alone or as `Apache-2.0 AND
+PolyForm-Noncommercial-1.0.0`: they may be used for noncommercial purposes
+only. The license text is in `LICENSES/PolyForm-Noncommercial-1.0.0.txt`, the
+Nexus-BS change notice in `CHANGES-NEXUS.md` and the Nexus-BS license overview
+(which describes the Nexus-BS repository) in
+`LICENSES/Nexus-BS-LICENSE-OVERVIEW.md`. Every MiuraStation binary includes
+them.
+
+Parrot (private echo service):
+- crates/tetra-entities/src/cmce/subentities/cc_bs/parrot.rs
+- crates/tetra-entities/tests/test_parrot_bs.rs
+
+WAP gateway codecs (IPv4/UDP helpers, WTP/WSP parsers, status pages):
+- crates/tetra-entities/src/sndcp/ip.rs
+- crates/tetra-entities/src/sndcp/wap_ip.rs
+- crates/tetra-entities/src/sndcp/wap_status.rs
+
+SNDCP packet-data bearer (SN-SAP primitives, SN-UNITDATA / SN-DATA and transfer
+control PDU codecs, tests adapted from Nexus-BS):
+- crates/tetra-saps/src/sn.rs
+- crates/tetra-entities/src/sndcp/transfer.rs
+- crates/tetra-entities/src/sndcp/unitdata.rs
+- crates/tetra-entities/tests/test_packet_data_nexus_bs.rs
+
+LLC advanced link (AL-SETUP, AL-DATA / AL-FINAL and AL-ACK / AL-RNR PDU codecs; the
+advanced link engine, with parts adapted from the Nexus-BS LLC):
+- crates/tetra-pdus/src/llc/pdus/al_setup.rs
+- crates/tetra-pdus/src/llc/pdus/al_data.rs
+- crates/tetra-pdus/src/llc/pdus/al_ack.rs
+- crates/tetra-entities/src/llc/advanced_link.rs
+
+Packet-data channels of several slots (the half-duplex guard, and the uplink
+grant counted over the slots of the channel when the slot carrying it is
+built, following the Nexus-BS scheduler):
+- crates/tetra-entities/src/umac/subcomp/bs_sched/multislot.rs
+
+Nexus-BS credits (from the Nexus-BS NOTICE):
+- BlueStation Project for historical TETRA BS foundation and
+  protocol-structure contributions:
+  https://github.com/MidnightBlueLabs/tetra-bluestation
+- FlowStation Project for historical field-feature, dashboard, integration,
+  and deployment-hardening lineage:
+  https://github.com/razvanzeces/flowstation
+- Mihajlo YU4MSH and the misadeks/tetra-bluestation fork for BlueStation fork
+  work, FDX P2P direction, and field-behavior contributions:
+  https://github.com/misadeks/tetra-bluestation
+- Harald Welte and the osmocom team for foundational osmocom-tetra work:
+  https://osmocom.org/projects/tetra/wiki
+- Tatu Peltola for his SXCEIVER project:
+  https://sxceiver.com/
+- Stichting NLnet for partial funding through the RETETRA3 grant:
+  https://nlnet.nl/
+- Dennis DB2OE for dashboard-theme inspiration.
+- Historical, fork, testing, documentation, hardware, dashboard, integration,
+  and operator-community contributors, including ON6RF, EA7KEN, BU2GQ,
+  DK5RTA, DO5MF, ES4TIX, and others.
+
+MiuraStation credits
+--------------------
+
+See `CREDITS.md` for the people and projects MiuraStation is grateful to.
+
+Resumen en español
+------------------
+
+MiuraStation se distribuye bajo la licencia Apache 2.0, salvo los componentes
+de Nexus-BS listados arriba, que son solo para uso no comercial (PolyForm
+Noncommercial 1.0.0) y van incluidos en todos los binarios: MiuraStation solo
+puede usarse con fines no comerciales. MiuraStation es una obra modificada de
+FlowStation (Razvan Zeces YO6RZV), que a su vez parte de BlueStation (Wouter
+Bokslag / Midnight Blue), e incluye componentes de Nexus-BS (Chris YO3TCO)
+usados con su permiso. Los desarrolladores de MiuraStation han modificado los
+ficheros heredados, primero en su fork de FlowStation y, desde la v1.0.0, en
+el código de MiuraStation; `CHANGELOG.md` resume lo que añade
+MiuraStation.

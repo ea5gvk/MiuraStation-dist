@@ -1,0 +1,3 @@
+# Published as .gitattributes of ea5gvk/MiuraStation-dist (contrib/dist/sync-dist.sh).
+# The installer is served raw from GitHub and run by bash: always LF.
+*.sh text eol=lf
