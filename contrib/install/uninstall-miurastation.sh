@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Uninstalls MiuraStation (the miurastation .deb) from a Raspberry Pi.
+# Uninstalls MiuraStation (the miurastation .deb) from a Raspberry Pi or a PC.
 #
 #   curl -fsSL https://raw.githubusercontent.com/ea5gvk/MiuraStation-dist/main/contrib/install/uninstall-miurastation.sh | sudo bash
 #   ... | sudo bash -s -- --yes

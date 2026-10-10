@@ -6,6 +6,45 @@ All notable changes to MiuraStation are documented in this file.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la numeración sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.2.0] - 2026-10-10
+
+MiuraStation se publica también para PC: paquetes `.deb` amd64 para Debian 12/13
+y Ubuntu 22.04/24.04, con una SDR USB por SoapySDR y el mismo instalador de una
+línea que en la Raspberry Pi. El paquete de PC se instala, arranca y encuentra
+sus bibliotecas, pero **todavía no se ha probado en el aire**.
+
+*English summary: MiuraStation is now also published for a PC: amd64 `.deb`
+packages and tarballs for Debian 12/13 and Ubuntu 22.04/24.04 with a USB SDR
+through SoapySDR (such as the LimeSDR Mini 2.0), set up by the same one-line
+installer. The PC build installs, starts and finds its libraries, but it has not
+been tested on air yet. The Raspberry Pi (arm64) packages are unchanged.*
+
+### Añadido
+
+- **Paquetes para PC (amd64)**: cada release publica también
+  `miurastation_X.Y.Z_amd64.deb` y `miurastation-X.Y.Z-x86_64.tar.gz`, junto a
+  los de arm64, y un solo `SHA256SUMS` para los cuatro ficheros. El paquete de
+  PC tiene el mismo contenido, rutas y dependencias que el de la Raspberry Pi
+  (`libsoapysdr0.8` de la distribución). Antes de publicar, cada versión se
+  instala con `apt` en Debian 12 y 13 y Ubuntu 22.04 y 24.04 y se comprueba que
+  arranca.
+- **Instalador en un PC**: `install-miurastation.sh` acepta un PC amd64 con
+  Debian 12/13 o Ubuntu 22.04/24.04. Se salta todo lo de la Raspberry Pi (HAT,
+  overlay, SPI y SoapySX), instala por defecto el módulo LimeSuite de SoapySDR
+  (`--sdr lime`; `--sdr none` no instala ninguno) y avisa de que Ubuntu 22.04
+  trae un LimeSuite (20.10) que no reconoce la LimeSDR Mini 2.0. El panel
+  tetra-live-monitor se instala como en la Raspberry Pi.
+- La actualización desde el panel de la estación instala el `.deb` de su
+  arquitectura: arm64 en la Raspberry Pi, amd64 en un PC.
+
+### Cambiado
+
+- El instalador busca el `.deb` de su arquitectura en `SHA256SUMS` antes de
+  descargarlo: una versión sin paquete para ella se detiene con un aviso claro.
+- El `.deb` incluye el logo en `/usr/share/doc/miurastation/assets/`, para la
+  imagen del README.
+- Las notas de cada release enumeran los ficheros de las dos arquitecturas.
+
 ## [1.1.0] - 2026-10-10
 
 MiuraStation se distribuye desde esta versión solo en binario: paquetes `.deb`
@@ -198,4 +237,5 @@ info, the systemd watchdog and a long list of ETSI conformance and field fixes.*
 - WX: METAR que empiezan por su tipo de informe; la tendencia y las
   observaciones de un METAR no se toman como el tiempo actual.
 
+[1.2.0]: https://github.com/ea5gvk/MiuraStation-dist/releases/tag/v1.2.0
 [1.1.0]: https://github.com/ea5gvk/MiuraStation-dist/releases/tag/v1.1.0

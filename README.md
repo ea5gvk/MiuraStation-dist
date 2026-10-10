@@ -10,7 +10,7 @@
 [![Uso](https://img.shields.io/badge/uso-no%20comercial-red.svg)](#licencia--license)
 [![Rust](https://img.shields.io/badge/hecho%20con-Rust-orange.svg)](https://www.rust-lang.org)
 
-**[Instalación](#instalación) · [Configuración](#configuración) · [Panel web](#panel-web) · [Preguntas frecuentes](#preguntas-frecuentes) · [Novedades](CHANGELOG.md) · [Créditos](#créditos) · [Incidencias](https://github.com/ea5gvk/MiuraStation-dist/issues) · [English summary](#english-summary)**
+**[Instalación](#instalación) · [PC](#instalar-en-un-pc-debian--ubuntu-amd64) · [Configuración](#configuración) · [Panel web](#panel-web) · [Preguntas frecuentes](#preguntas-frecuentes) · [Novedades](CHANGELOG.md) · [Créditos](#créditos) · [Incidencias](https://github.com/ea5gvk/MiuraStation-dist/issues) · [English summary](#english-summary)**
 
 </div>
 
@@ -33,9 +33,10 @@ licencias. El código fuente de MiuraStation no se publica.
 ## ¿Qué es MiuraStation?
 
 MiuraStation es una **estación base TETRA completa hecha por software**. Con una
-Raspberry Pi, una SDR (SXceiver o LimeSDR) y tus radios TETRA tienes una célula
-TETRA privada: llamadas de grupo e individuales, mensajes SDS, interconexión con
-Brew (TetraPack / BrandMeister), datos por paquetes con pasarela WAP, varias
+Raspberry Pi (o un PC con Debian o Ubuntu, aún sin probar en el aire), una SDR
+(SXceiver o LimeSDR) y tus radios TETRA tienes una célula TETRA privada:
+llamadas de grupo e individuales, mensajes SDS, interconexión con Brew
+(TetraPack / BrandMeister), datos por paquetes con pasarela WAP, varias
 portadoras y un panel web en directo. No hace falta infraestructura propietaria.
 
 La desarrollan **Joaquin EA5GVK**, **Rafa EA7KEN** e **Iñaki EA8DJI**. Está
@@ -117,17 +118,18 @@ El detalle de cada versión está en el [registro de cambios](CHANGELOG.md).
 
 ## Hardware
 
-| Placa | Sistema | Estado |
+| Equipo | Sistema | Estado |
 |---|---|---|
 | Raspberry Pi 5 | Raspberry Pi OS 64 bits, Bookworm o Trixie | Probada (estación de referencia) |
 | Raspberry Pi 4 / 400 / CM4 | Raspberry Pi OS 64 bits, Bookworm o Trixie | Soportada |
 | Raspberry Pi 3 B / B+ | Raspberry Pi OS 64 bits, Bookworm o Trixie | Solo **una portadora** hasta que se pruebe en campo |
+| PC de 64 bits (amd64) | Debian 12 / 13 o Ubuntu 22.04 / 24.04 | **Sin probar en el aire** (ver [Instalar en un PC](#instalar-en-un-pc-debian--ubuntu-amd64)) |
 
-- Hace falta el sistema de **64 bits** (arm64). Para el de 32 bits (armhf)
-  todavía no hay paquete; Pi 1, Pi 2 y Pi Zero no están soportadas.
-- SDR: **SXceiver** (HAT, módulo SoapySX) o **LimeSDR** (módulo LimeSuite de
-  SoapySDR); la LimeSDR Mini 2.0 está probada. Otras SDR con módulo SoapySDR
-  pueden funcionar.
+- En la Raspberry Pi hace falta el sistema de **64 bits** (arm64). Para el de 32
+  bits (armhf) todavía no hay paquete; Pi 1, Pi 2 y Pi Zero no están soportadas.
+- SDR: **SXceiver** (HAT de la Raspberry Pi, módulo SoapySX) o **LimeSDR**
+  (módulo LimeSuite de SoapySDR); la LimeSDR Mini 2.0 está probada. Otras SDR
+  con módulo SoapySDR pueden funcionar.
 - En una Pi 3 usa una sola portadora (sin `extra_carriers` ni portadora de
   datos), refrigeración y el registro en nivel INFO.
 
@@ -135,7 +137,8 @@ El detalle de cada versión está en el [registro de cambios](CHANGELOG.md).
 
 ## Instalación
 
-En la Raspberry Pi, con Internet:
+En la Raspberry Pi, con Internet (en un PC, ver
+[Instalar en un PC](#instalar-en-un-pc-debian--ubuntu-amd64)):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ea5gvk/MiuraStation-dist/main/contrib/install/install-miurastation.sh | sudo bash
@@ -147,23 +150,24 @@ Opciones (detrás de `sudo bash -s --`) o variables de entorno:
 |---|---|---|
 | `--version vX.Y.Z` | `MIURA_VERSION` | Instala esa versión en vez de la última estable |
 | `--beta` | `MIURA_CHANNEL=beta` | La versión más reciente, betas incluidas |
-| `--sdr sx\|lime\|none` | `MIURA_SDR` | Módulo de la SDR (por defecto se detecta) |
+| `--sdr sx\|lime\|none` | `MIURA_SDR` | Módulo de la SDR (por defecto se detecta; en un PC, `lime`) |
 | `--no-monitor` | `MIURA_NO_MONITOR=1` | No instala el panel tetra-live-monitor |
 | `--yes` | `MIURA_YES=1` | No pregunta nada |
 | | `TLM_PASSWORD` | Contraseña de administración del panel |
 | | `TLM_BRANCH` | Rama de tetra-live-monitor (por defecto `main`) |
 
-Por ejemplo: `curl -fsSL …/install-miurastation.sh | sudo bash -s -- --version v1.1.0 --sdr sx`
+Por ejemplo: `curl -fsSL …/install-miurastation.sh | sudo bash -s -- --version v1.2.0 --sdr sx`
 
 El instalador:
 
-1. comprueba que es un sistema arm64 Bookworm o Trixie, la red y el espacio libre;
+1. comprueba el sistema (arm64 con Bookworm o Trixie, o un PC amd64 con
+   Debian 12/13 o Ubuntu 22.04/24.04), la red y el espacio libre;
 2. instala SoapySDR y el módulo de la SDR (SoapySX se compila desde
    [tejeez/sxxcvr](https://github.com/tejeez/sxxcvr); si el SXceiver no tiene
    EEPROM, añade el overlay y el SPI a `config.txt` y avisa de que hay que
    reiniciar);
-3. descarga el `.deb` y `SHA256SUMS` de la versión, comprueba la suma e
-   instala el paquete;
+3. descarga el `.deb` de su arquitectura y `SHA256SUMS` de la versión,
+   comprueba la suma e instala el paquete;
 4. instala o actualiza el panel tetra-live-monitor (Node.js, pm2) en
    `/opt/tetra-live-monitor`;
 5. muestra la dirección del panel. Registro: `/var/log/miurastation-install.log`.
@@ -187,9 +191,42 @@ journalctl -u miurastation -f
 | `/lib/systemd/system/miurastation.service` | Servicio, con la vigilancia de systemd (cambios locales en `/etc/systemd/system/miurastation.service.d/`) |
 | `/usr/share/doc/miurastation/` | Licencias, avisos y `THIRD-PARTY-LICENSES` |
 
-`miurastation --version` muestra la versión (`MiuraStation v1.1.0-<commit>`) y
+`miurastation --version` muestra la versión (`MiuraStation v1.2.0-<commit>`) y
 `miurastation --license` muestra `NOTICE`, las licencias PolyForm Noncommercial
 1.0.0 y Apache 2.0, y dónde están los demás avisos.
+
+### Instalar en un PC (Debian / Ubuntu, amd64)
+
+> **Todavía no se ha probado en el aire.** En cada versión, el paquete de PC se
+> instala en Debian 12 y 13 y en Ubuntu 22.04 y 24.04, arranca y encuentra sus
+> bibliotecas, pero nadie lo ha probado aún transmitiendo con radios. Si lo
+> pruebas, cuéntanos cómo va en las
+> [incidencias](https://github.com/ea5gvk/MiuraStation-dist/issues).
+
+Requisitos:
+
+- Un PC de 64 bits (x86-64, amd64) con **Debian 12 (Bookworm) o 13 (Trixie)**, o
+  con **Ubuntu 22.04 o 24.04** (con el componente `universe`, activado por
+  defecto). Ubuntu 20.04 y Debian 11 no sirven: no tienen SoapySDR 0.8.
+- Una SDR USB con módulo SoapySDR, por ejemplo la **LimeSDR Mini 2.0** (la
+  probada en la Raspberry Pi), con el módulo LimeSuite de la distribución
+  (`soapysdr0.8-module-lms7`). La LimeSDR Mini 2.0 necesita LimeSuite 22.09 o
+  posterior: Debian 12/13 y Ubuntu 24.04 lo traen; Ubuntu 22.04 trae el 20.10,
+  que no la reconoce. El SXceiver es un HAT de la Raspberry Pi y no sirve en un
+  PC.
+
+El mismo comando que en la Raspberry Pi:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ea5gvk/MiuraStation-dist/main/contrib/install/install-miurastation.sh | sudo bash
+```
+
+En un PC el instalador se salta todo lo de la Raspberry Pi (HAT, overlay, SPI y
+SoapySX), instala por defecto el módulo de la LimeSDR (`--sdr lime`; con
+`--sdr none` no instala ninguno), el paquete `miurastation_X.Y.Z_amd64.deb` y el
+panel tetra-live-monitor (con Node.js 22 de NodeSource si la distribución trae
+uno anterior). Las rutas, la configuración, el servicio y el botón de
+actualización del panel de la estación son los mismos que en la Raspberry Pi.
 
 ### Actualizar
 
@@ -207,7 +244,7 @@ el `.deb` y `SHA256SUMS`, y:
 
 ```bash
 sha256sum -c --ignore-missing SHA256SUMS
-sudo apt install ./miurastation_X.Y.Z_arm64.deb
+sudo apt install ./miurastation_X.Y.Z_arm64.deb   # en un PC, miurastation_X.Y.Z_amd64.deb
 ```
 
 Canales: **estable** = la última versión publicada (*latest*); **beta** = las
@@ -227,7 +264,9 @@ SoapySDR y el módulo de la SDR siguen instalados.
 | Fichero | Contenido |
 |---|---|
 | `miurastation_X.Y.Z_arm64.deb` | Paquete para Raspberry Pi OS 64 bits |
-| `miurastation-X.Y.Z-aarch64.tar.gz` | Programa, configuración de ejemplo y licencias, sin instalador |
+| `miurastation-X.Y.Z-aarch64.tar.gz` | Programa para Raspberry Pi, configuración de ejemplo y licencias, sin instalador |
+| `miurastation_X.Y.Z_amd64.deb` | Paquete para PC con Debian 12/13 o Ubuntu 22.04/24.04 (desde la v1.2.0) |
+| `miurastation-X.Y.Z-x86_64.tar.gz` | Programa para PC, configuración de ejemplo y licencias, sin instalador |
 | `SHA256SUMS` | Sumas SHA-256 de los anteriores |
 
 Los paquetes no incluyen el códec ACELP de ETSI ni la telefonía Asterisk
@@ -239,7 +278,7 @@ SIP/RTPC.
 
 La configuración está en `/root/miurastation/config.toml`. El fichero de
 referencia, con todos los parámetros comentados, es
-[`example_config/config.toml`](example_config/config.toml) (en la Raspberry Pi,
+[`example_config/config.toml`](example_config/config.toml) (en la estación,
 `/usr/share/miurastation/example_config/config.toml`). Aquí van los básicos.
 Después de cambiar algo, reinicia la estación
 (`sudo systemctl restart miurastation`).
@@ -543,6 +582,10 @@ botón del panel nunca instala una versión anterior.
 con una sola portadora hasta que se pruebe en campo. El sistema de 32 bits
 (armhf) todavía no tiene paquete.
 
+**¿Funciona en un PC?** Desde la v1.2.0 hay paquete amd64 para Debian 12/13 y
+Ubuntu 22.04/24.04 con una SDR USB como la LimeSDR Mini 2.0, pero todavía no se
+ha probado en el aire. Ver [Instalar en un PC](#instalar-en-un-pc-debian--ubuntu-amd64).
+
 **El control remoto desde la radio no hace nada.** La radio tiene que mandar un
 STATUS (no un SDS de texto) al ISSI 9999, desde un ISSI de `authorized_issis`,
 con un código entre 32768 y 65535. Al arrancar, la estación avisa de los códigos
@@ -622,15 +665,16 @@ open source: it is a free binary distribution for noncommercial use.
 ## English summary
 
 **MiuraStation** is a software-defined TETRA base station written in Rust that
-runs on a Raspberry Pi with an SXceiver or LimeSDR: group and individual calls
-(full duplex and simplex), SDS, Home Mode Display and emergency alarms, Brew
-interconnect (TetraPack / BrandMeister), packet data (SNDCP over the MCCH or over
-packet-data channels of up to 4 slots, also on a dedicated packet-data carrier)
-with a WAP gateway (weather and radioid.net lookups on the radio), dual, extra
-and on-demand carriers, a parrot (echo) service, SDS remote control with station
-info, DAPNET, Snom notifications, GeoAlarm, the systemd watchdog and a live web
-dashboard (port 8080). Tested with LimeSDR Mini 2.0, SXceiver, Motorola MXP600,
-MTM800E, MTM5400 and Sepura SRP2000.
+runs on a Raspberry Pi with an SXceiver or LimeSDR (and, not yet tested on air,
+on a PC with a LimeSDR): group and individual calls (full duplex and simplex),
+SDS, Home Mode Display and emergency alarms, Brew interconnect (TetraPack /
+BrandMeister), packet data (SNDCP over the MCCH or over packet-data channels of
+up to 4 slots, also on a dedicated packet-data carrier) with a WAP gateway
+(weather and radioid.net lookups on the radio), dual, extra and on-demand
+carriers, a parrot (echo) service, SDS remote control with station info, DAPNET,
+Snom notifications, GeoAlarm, the systemd watchdog and a live web dashboard
+(port 8080). Tested with LimeSDR Mini 2.0, SXceiver, Motorola MXP600, MTM800E,
+MTM5400 and Sepura SRP2000.
 
 It is developed by **Joaquin EA5GVK**, **Rafa EA7KEN** and **Iñaki EA8DJI**. It
 is based on FlowStation by Răzvan Zeceș YO6RZV, which builds on BlueStation by
@@ -643,12 +687,17 @@ only**; it is not open source.
 - **Hardware:** Raspberry Pi 5, 4/400/CM4 and 3 B/B+ with **64-bit** Raspberry
   Pi OS Bookworm or Trixie (Pi 3: single carrier only until field-tested);
   SXceiver or LimeSDR.
+- **PC (amd64)**, since v1.2.0: Debian 12/13 or Ubuntu 22.04/24.04 with a USB
+  SDR through SoapySDR, such as the LimeSDR Mini 2.0 (it needs LimeSuite 22.09 or
+  later: Debian 12/13 or Ubuntu 24.04). Same one-line installer, which skips the
+  Raspberry Pi parts and defaults to `--sdr lime` there. The PC build installs,
+  starts and finds its libraries, but it **has not been tested on air yet**.
 - **Install / update** (run it again to update):
   `curl -fsSL https://raw.githubusercontent.com/ea5gvk/MiuraStation-dist/main/contrib/install/install-miurastation.sh | sudo bash`
   — options `--version vX.Y.Z`, `--beta`, `--sdr sx|lime|none`, `--no-monitor`, `--yes`.
-  It installs SoapySDR and the SDR module, the verified `.deb` and the
-  tetra-live-monitor panel (port 5000). The first install does not start the
-  station: edit `/root/miurastation/config.toml` (frequencies, `mcc`, `mnc`) and
+  It installs SoapySDR and the SDR module, the verified `.deb` of the machine's
+  architecture (`arm64` or `amd64`) and the tetra-live-monitor panel (port
+  5000). The first install does not start the station: edit `/root/miurastation/config.toml` (frequencies, `mcc`, `mnc`) and
   `sudo systemctl start miurastation`. The station's dashboard and
   tetra-live-monitor can also update it; `config.toml` is never overwritten.
 - **Configuration:** the fully commented reference is

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # MiuraStation installer and updater for a Raspberry Pi 3/4/5 with 64-bit Raspberry Pi OS (Bookworm or
-# Trixie). Installs the miurastation .deb of a release of ea5gvk/MiuraStation-dist (checked against its
+# Trixie), or a PC (amd64) with Debian 12/13 or Ubuntu 22.04/24.04 (not yet tested on air). Installs the
+# miurastation .deb of a release of ea5gvk/MiuraStation-dist for this architecture (checked against its
 # SHA256SUMS), the SoapySDR runtime and the SDR module, and the tetra-live-monitor panel.
 #
 #   curl -fsSL https://raw.githubusercontent.com/ea5gvk/MiuraStation-dist/main/contrib/install/install-miurastation.sh | sudo bash
@@ -10,7 +11,7 @@
 #   --version vX.Y.Z     MIURA_VERSION=vX.Y.Z  that release instead of the latest stable one
 #   --beta               MIURA_CHANNEL=beta    the newest release, pre-releases (beta) included
 #   --no-monitor         MIURA_NO_MONITOR=1    do not install or update tetra-live-monitor
-#   --sdr sx|lime|none   MIURA_SDR=...         SoapySDR module of the SDR (default: detected)
+#   --sdr sx|lime|none   MIURA_SDR=...         SoapySDR module of the SDR (default: detected; lime on a PC)
 #   --yes                MIURA_YES=1           do not ask for confirmation
 #   TLM_BRANCH=main      tetra-live-monitor branch     TLM_PASSWORD=...  panel admin password
 #   SXX_REF=<commit>     tejeez/sxxcvr commit built for SoapySX
@@ -40,6 +41,7 @@ TLM_BRANCH=${TLM_BRANCH:-main}
 SXX_REF=${SXX_REF:-$SXX_REF_DEFAULT}
 
 TAG="" VERSION="" CODENAME="" WORK="" TMP_SWAP=""
+ARCH="" OS_ID="" PC=0
 LEGACY_ACTIVE="" LEGACY_ENABLED=""
 REBOOT_NEEDED=0
 NOTES=()
@@ -98,24 +100,41 @@ cleanup() {
 
 check_system() {
   say "Comprobando el sistema"
-  command -v dpkg >/dev/null 2>&1 || die "solo para Raspberry Pi OS / Debian"
-  local arch model avail need pretty
-  arch=$(dpkg --print-architecture)
-  [ "$arch" = arm64 ] || die "arquitectura $arch no soportada: hace falta Raspberry Pi OS de 64 bits (arm64). La de 32 bits (armhf) todavía no tiene paquete."
+  command -v dpkg >/dev/null 2>&1 || die "solo para Raspberry Pi OS, Debian o Ubuntu"
+  local model avail need pretty
+  ARCH=$(dpkg --print-architecture)
   # In subshells: /etc/os-release also sets VERSION.
   # shellcheck disable=SC1091
   CODENAME=$(. /etc/os-release && echo "${VERSION_CODENAME:-}")
   # shellcheck disable=SC1091
+  OS_ID=$(. /etc/os-release && echo "${ID:-}")
+  # shellcheck disable=SC1091
   pretty=$(. /etc/os-release && echo "${PRETTY_NAME:-desconocido}")
-  case "$CODENAME" in
-    bookworm|trixie) ;;
-    *) die "sistema no soportado: $pretty. Hace falta Raspberry Pi OS (Debian) Bookworm o Trixie de 64 bits." ;;
-  esac
-  model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0' || true)
-  info "Placa:   ${model:-desconocida}"
-  info "Sistema: $pretty ($arch)"
-  case "$model" in
-    *"Raspberry Pi 3"*) warn "Raspberry Pi 3: usa una sola portadora (sin extra_carriers ni portadora de datos) mientras no se haya probado en campo." ;;
+  case "$ARCH" in
+    arm64)
+      case "$CODENAME" in
+        bookworm|trixie) ;;
+        *) die "sistema no soportado: $pretty. Hace falta Raspberry Pi OS (Debian) Bookworm o Trixie de 64 bits." ;;
+      esac
+      model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0' || true)
+      info "Placa:   ${model:-desconocida}"
+      info "Sistema: $pretty ($ARCH)"
+      case "$model" in
+        *"Raspberry Pi 3"*) warn "Raspberry Pi 3: usa una sola portadora (sin extra_carriers ni portadora de datos) mientras no se haya probado en campo." ;;
+      esac
+      ;;
+    amd64)
+      # PC: the systems with libsoapysdr0.8 (Ubuntu 20.04 and Debian 11 only have 0.7).
+      case "$OS_ID $CODENAME" in
+        "debian bookworm"|"debian trixie"|"ubuntu jammy"|"ubuntu noble") ;;
+        *) die "sistema no soportado en un PC: $pretty. Hace falta Debian 12 o 13, o Ubuntu 22.04 o 24.04, de 64 bits (amd64)." ;;
+      esac
+      PC=1
+      info "Equipo:  PC"
+      info "Sistema: $pretty ($ARCH)"
+      warn "PC (amd64): el paquete arranca y encuentra sus bibliotecas, pero todavía no se ha probado en el aire."
+      ;;
+    *) die "arquitectura $ARCH no soportada: hace falta Raspberry Pi OS de 64 bits (arm64) o un PC con Debian o Ubuntu de 64 bits (amd64). La de 32 bits (armhf) todavía no tiene paquete." ;;
   esac
   need=400
   [ "$NO_MONITOR" = 1 ] || need=1500
@@ -153,6 +172,18 @@ print(json.load(sys.stdin).get("tag_name", ""))') || die "no se ha podido consul
 }
 
 detect_sdr() {
+  if [ "$PC" = 1 ]; then
+    # A PC has no SXceiver HAT: its SDR is a USB one through SoapySDR, a LimeSDR unless told otherwise.
+    case "$SDR" in
+      sx) die "el SXceiver es un HAT de la Raspberry Pi: en un PC usa --sdr lime o --sdr none" ;;
+      auto) SDR=lime ;;
+    esac
+    info "SDR: $SDR"
+    if [ "$SDR" = lime ] && [ "$CODENAME" = jammy ]; then
+      warn "Ubuntu 22.04 trae LimeSuite 20.10, que no reconoce la LimeSDR Mini 2.0 (llegó en LimeSuite 22.09): para ella usa Debian 12/13 o Ubuntu 24.04."
+    fi
+    return 0
+  fi
   [ "$SDR" = auto ] || return 0
   local usb
   usb=$(lsusb 2>/dev/null || true)
@@ -169,6 +200,9 @@ detect_sdr() {
 
 install_soapysdr() {
   say "SoapySDR"
+  if [ "$OS_ID" = ubuntu ] && ! apt-cache show libsoapysdr0.8 >/dev/null 2>&1; then
+    die "Ubuntu no encuentra libsoapysdr0.8: activa el componente universe (sudo add-apt-repository universe) y vuelve a ejecutar el instalador"
+  fi
   apt_install libsoapysdr0.8 soapysdr-tools
   case "$SDR" in
     sx) install_soapysx ;;
@@ -249,14 +283,15 @@ migrate_source_unit() {
 install_station() {
   say "Paquete miurastation $VERSION"
   local base="https://github.com/$DIST_REPO/releases/download/$TAG"
-  local deb="miurastation_${VERSION}_arm64.deb"
+  local deb="miurastation_${VERSION}_${ARCH}.deb"
   WORK=$(mktemp -d /tmp/miurastation-install.XXXXXX)
   chmod 755 "$WORK"   # apt reads the .deb as the _apt user
   curl -fsSL --retry 3 -o "$WORK/SHA256SUMS" "$base/SHA256SUMS" || die "la versión $TAG no existe en $DIST_REPO (o no hay red)"
+  # One SHA256SUMS for every architecture: a version without a package for this one stops here.
+  awk -v f="$deb" '$2 == f || $2 == "*" f' "$WORK/SHA256SUMS" > "$WORK/deb.sha256"
+  [ -s "$WORK/deb.sha256" ] || die "SHA256SUMS no incluye $deb: la versión $TAG no tiene paquete para $ARCH"
   curl -fSL --retry 3 --progress-bar -o "$WORK/$deb" "$base/$deb" || die "no se ha podido descargar $deb"
   chmod 644 "$WORK/$deb"
-  awk -v f="$deb" '$2 == f || $2 == "*" f' "$WORK/SHA256SUMS" > "$WORK/deb.sha256"
-  [ -s "$WORK/deb.sha256" ] || die "SHA256SUMS no incluye $deb"
   (cd "$WORK" && sha256sum -c deb.sha256) || die "la suma SHA-256 de $deb no coincide: descarga corrupta o manipulada"
 
   local new cur
@@ -293,7 +328,7 @@ install_node() {
   if [ "$CODENAME" = trixie ]; then
     apt_install nodejs npm
   else
-    # Bookworm ships Node.js 18: NodeSource repository (Node.js 22 LTS).
+    # Bookworm (18), Ubuntu 22.04 (12) and 24.04 (18) ship an older Node.js: NodeSource (Node.js 22 LTS).
     apt_install gnupg
     install -d -m 0755 /etc/apt/keyrings
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
@@ -408,7 +443,8 @@ summary() {
   if [ "$NO_MONITOR" != 1 ]; then
     info "Panel tetra-live-monitor:"
     for ip in $ips; do info "  http://$ip:5000"; done
-    info "  http://$host.local:5000"
+    # Raspberry Pi OS runs avahi; a PC may not.
+    if [ "$PC" != 1 ] || systemctl is-active --quiet avahi-daemon 2>/dev/null; then info "  http://$host.local:5000"; fi
   fi
   info "Panel propio de la estación (con [dashboard] activado en config.toml): http://<IP>:8080"
   if [ "$REBOOT_NEEDED" = 1 ]; then
