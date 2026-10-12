@@ -191,7 +191,7 @@ journalctl -u miurastation -f
 | `/lib/systemd/system/miurastation.service` | Servicio, con la vigilancia de systemd (cambios locales en `/etc/systemd/system/miurastation.service.d/`) |
 | `/usr/share/doc/miurastation/` | Licencias, avisos y `THIRD-PARTY-LICENSES` |
 
-`miurastation --version` muestra la versión (`MiuraStation v1.2.0-<commit>`) y
+`miurastation --version` muestra la versión (`MiuraStation v1.3.0-<commit>`) y
 `miurastation --license` muestra `NOTICE`, las licencias PolyForm Noncommercial
 1.0.0 y Apache 2.0, y dónde están los demás avisos.
 
@@ -450,6 +450,21 @@ rellenar su sección (ver la plantilla). La telefonía Asterisk SIP/RTPC (el
 puente de llamadas entre TETRA y teléfonos de Asterisk) **no** está en los
 paquetes.
 
+### Alertas por Telegram
+
+La estación manda un mensaje a tu bot de Telegram cuando una radio se conecta,
+se desconecta o deja de contestar al T351, cuando llega una posición LIP/APRS o
+una emergencia, cuando cae o vuelve el enlace Brew, cuando cambia la salud de la
+estación y cuando el log da un aviso o un error. Se configura en el menú
+Telegram del panel (token de @BotFather y Chat ID) o en la sección
+`[telegram_alerts]`. Desde la v1.3.0 los mensajes salen **en español**; para
+recibirlos en inglés, elige *English* en ese menú o añade:
+
+```toml
+[telegram_alerts]
+language = "en"   # "es" (por defecto) o "en"
+```
+
 ### DAPNET
 
 La recepción de DAPNET usa el núcleo RWTH (TCP 43434 de salida). Cada mensaje
@@ -672,8 +687,9 @@ BrandMeister), packet data (SNDCP over the MCCH or over packet-data channels of
 up to 4 slots, also on a dedicated packet-data carrier) with a WAP gateway
 (weather and radioid.net lookups on the radio), dual, extra and on-demand
 carriers, a parrot (echo) service, SDS remote control with station info, DAPNET,
-Snom notifications, GeoAlarm, the systemd watchdog and a live web dashboard
-(port 8080). Tested with LimeSDR Mini 2.0, SXceiver, Motorola MXP600, MTM800E,
+Snom notifications, GeoAlarm, Telegram alerts (in Spanish by default,
+`language = "en"` in `[telegram_alerts]` for English), the systemd watchdog and a
+live web dashboard (port 8080). Tested with LimeSDR Mini 2.0, SXceiver, Motorola MXP600, MTM800E,
 MTM5400 and Sepura SRP2000.
 
 It is developed by **Joaquin EA5GVK**, **Rafa EA7KEN** and **Iñaki EA8DJI**. It

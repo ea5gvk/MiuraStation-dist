@@ -628,6 +628,7 @@ voice_service = true
 # alert_lip = true                # LIP/APRS position beacon
 # alert_backhaul = true           # Brew backhaul up/down
 # alert_critical_logs = true      # forward the stack's WARN/ERROR log lines
+# language = "es"                 # alert language: "es" (Spanish, default) or "en" (English)
 
 ###############################################################################
 

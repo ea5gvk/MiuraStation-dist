@@ -6,6 +6,37 @@ All notable changes to MiuraStation are documented in this file.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la numeración sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.3.0] - 2026-10-12
+
+Las alertas de Telegram salen ahora en español: radios que se conectan o se
+pierden, posiciones, emergencias, el enlace Brew, la salud de la estación y los
+avisos del log. Para seguir recibiéndolas en inglés, elige *English* en el menú
+Telegram del panel de la estación o pon `language = "en"` en
+`[telegram_alerts]`.
+
+*English summary: Telegram alerts now go out in Spanish by default, existing
+installs included. To keep them in English, pick English in the Telegram menu of
+the station panel or set `language = "en"` in `[telegram_alerts]`.*
+
+### Añadido
+
+- Clave `language` en `[telegram_alerts]`: `"es"` (por defecto) o `"en"`. Un
+  valor desconocido deja el español y lo avisa en el log al arrancar.
+- Selector del idioma de las alertas en el menú Telegram del panel de la
+  estación (puerto 8080), que se guarda en `[telegram_alerts] language`. El
+  botón de prueba manda el mensaje en el idioma elegido.
+
+### Cambiado
+
+- **Las alertas de Telegram salen en español** cuando `language` no está puesto,
+  también en las instalaciones que ya existían: títulos, etiquetas, la salud de
+  la estación (partes, niveles, detalles y acciones del vigilante) y la hora del
+  pie, en formato dd/mm/aaaa. Las líneas WARN/ERROR del log se reenvían tal cual
+  y el texto de los mensajes DAPNET y GeoAlarm no se toca.
+- Los avisos de GeoAlarm por Telegram llevan la etiqueta "Origen" (en inglés,
+  "Source") en lugar de "Callsign/recipient", y "GeoAlarm" como título cuando no
+  hay prefijo.
+
 ## [1.2.0] - 2026-10-10
 
 MiuraStation se publica también para PC: paquetes `.deb` amd64 para Debian 12/13
@@ -237,5 +268,6 @@ info, the systemd watchdog and a long list of ETSI conformance and field fixes.*
 - WX: METAR que empiezan por su tipo de informe; la tendencia y las
   observaciones de un METAR no se toman como el tiempo actual.
 
+[1.3.0]: https://github.com/ea5gvk/MiuraStation-dist/releases/tag/v1.3.0
 [1.2.0]: https://github.com/ea5gvk/MiuraStation-dist/releases/tag/v1.2.0
 [1.1.0]: https://github.com/ea5gvk/MiuraStation-dist/releases/tag/v1.1.0
