@@ -367,12 +367,30 @@ install_monitor() {
   local before="" after
   if [ -d "$TLM_DIR/.git" ]; then
     before=$(git -C "$TLM_DIR" rev-parse HEAD)
+    # The panel must come from $TLM_REPO: an older or hand-made install may point elsewhere.
+    local origin_url
+    origin_url=$(git -C "$TLM_DIR" remote get-url origin 2>/dev/null || true)
+    if [ "$origin_url" != "$TLM_REPO" ]; then
+      info "tetra-live-monitor apuntaba a ${origin_url:-ningún repositorio}: se cambia a $TLM_REPO"
+      git -C "$TLM_DIR" remote remove origin 2>/dev/null || true
+      git -C "$TLM_DIR" remote add origin "$TLM_REPO"
+    fi
     git -C "$TLM_DIR" fetch -q origin "$TLM_BRANCH" || die "no se ha podido actualizar $TLM_DIR"
+    # config.json is tracked by the panel's repo but holds this install's admin password: set it
+    # aside so it never blocks the fast-forward, and put it back afterwards.
+    local cfg_bak=""
+    if ! git -C "$TLM_DIR" diff --quiet -- config.json 2>/dev/null; then
+      cfg_bak=$(mktemp) && cp "$TLM_DIR/config.json" "$cfg_bak" && git -C "$TLM_DIR" checkout -q -- config.json
+    fi
     if [ "$(git -C "$TLM_DIR" rev-parse --abbrev-ref HEAD)" != "$TLM_BRANCH" ]; then
       git -C "$TLM_DIR" checkout -q "$TLM_BRANCH" || die "no se puede pasar $TLM_DIR a la rama $TLM_BRANCH"
     fi
     git -C "$TLM_DIR" merge -q --ff-only "origin/$TLM_BRANCH" \
-      || warn "tetra-live-monitor tiene cambios locales que impiden actualizarlo: sigue en la versión instalada"
+      || warn "tetra-live-monitor tiene cambios locales que impiden actualizarlo ($(git -C "$TLM_DIR" status --short | head -3 | tr '\n' ' ')): sigue en la versión instalada"
+    if [ -n "$cfg_bak" ]; then
+      cp "$cfg_bak" "$TLM_DIR/config.json"
+      rm -f "$cfg_bak"
+    fi
   elif [ -e "$TLM_DIR" ]; then
     die "$TLM_DIR existe y no es un clon git de tetra-live-monitor"
   else
@@ -383,11 +401,18 @@ install_monitor() {
   if [ "$before" != "$after" ] || [ ! -f "$TLM_DIR/dist/index.cjs" ]; then
     ensure_build_swap
     info "Instalando dependencias y compilando (en una Pi 3 tarda varios minutos)"
+    info "tetra-live-monitor $(git -C "$TLM_DIR" rev-parse --short HEAD) de $(git -C "$TLM_DIR" remote get-url origin) con Node $(node --version) y npm $(npm --version)"
     # On a 1 GB Pi, Node's default heap limit is too small for the build: let it use the swap.
     local mem
     mem=$(awk '/^MemTotal:/ { print int($2 / 1024) }' /proc/meminfo)
+    # npm ci needs the repo's package-lock.json; a checkout without it (or with one this npm
+    # cannot read) falls back to npm install, which resolves the dependencies itself.
     (cd "$TLM_DIR" && unset NODE_ENV && { [ "$mem" -ge 1536 ] || export NODE_OPTIONS=--max-old-space-size=1024; } \
-      && npm ci --no-audit --no-fund && npm run build)
+      && if [ -f package-lock.json ] && npm ci --no-audit --no-fund; then :; else
+           warn "npm ci no ha podido usar package-lock.json: se instala con npm install"
+           rm -rf node_modules && npm install --no-audit --no-fund
+         fi \
+      && npm run build)
   else
     info "tetra-live-monitor ya está al día (${after:0:8})"
   fi
