@@ -323,9 +323,7 @@ install_node() {
   if command -v node >/dev/null 2>&1; then major=$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0); fi
   if [ "$major" -ge 20 ] && command -v npm >/dev/null 2>&1; then
     info "Node.js $(node --version) ya instalado"
-    return 0
-  fi
-  if [ "$CODENAME" = trixie ]; then
+  elif [ "$CODENAME" = trixie ]; then
     apt_install nodejs npm
   else
     # Bookworm (18), Ubuntu 22.04 (12) and 24.04 (18) ship an older Node.js: NodeSource (Node.js 22 LTS).
@@ -340,7 +338,19 @@ install_node() {
   fi
   major=$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)
   [ "$major" -ge 20 ] || die "hace falta Node.js 20 o posterior y hay $(node --version 2>/dev/null || echo ninguno)"
-  info "Node.js $(node --version)"
+  # Debian 13 (Trixie) ships Node.js 20 with npm 9.2, which can neither read the panel's
+  # package-lock.json (lockfileVersion 3) nor its "npm:" aliases ("Invalid comparator"):
+  # the panel needs npm 10, installed over it (into /usr/local, ahead of /usr/bin in PATH).
+  local npm_major
+  npm_major=$(npm --version 2>/dev/null | cut -d. -f1)
+  if [ "${npm_major:-0}" -lt 10 ]; then
+    info "npm $(npm --version 2>/dev/null || echo ninguno) es demasiado antiguo para el panel: se instala npm 10"
+    npm install -g --no-audit --no-fund npm@10 || die "no se ha podido instalar npm 10"
+    hash -r
+    npm_major=$(npm --version 2>/dev/null | cut -d. -f1)
+    [ "${npm_major:-0}" -ge 10 ] || die "sigue en uso npm $(npm --version 2>/dev/null) en $(command -v npm): hace falta npm 10 o posterior"
+  fi
+  info "Node.js $(node --version), npm $(npm --version)"
 }
 
 # The panel's build needs about 1.5 GB: a Pi with less RAM + swap gets a temporary swap file.
