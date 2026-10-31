@@ -10,7 +10,7 @@
 [![Uso](https://img.shields.io/badge/uso-no%20comercial-red.svg)](#licencia--license)
 [![Rust](https://img.shields.io/badge/hecho%20con-Rust-orange.svg)](https://www.rust-lang.org)
 
-**[Instalación](#instalación) · [PC](#instalar-en-un-pc-debian--ubuntu-amd64) · [Configuración](#configuración) · [Panel web](#panel-web) · [Preguntas frecuentes](#preguntas-frecuentes) · [Novedades](CHANGELOG.md) · [Créditos](#créditos) · [Incidencias](https://github.com/ea5gvk/MiuraStation-dist/issues) · [English summary](#english-summary)**
+**[Instalación](#instalación) · [PC](#instalar-en-un-pc-debian--ubuntu-amd64) · [Configuración](#configuración) · [Panel web](#panel-web) · [DMR Tier III](#dmr-tier-iii-opcional) · [Preguntas frecuentes](#preguntas-frecuentes) · [Novedades](CHANGELOG.md) · [Créditos](#créditos) · [Incidencias](https://github.com/ea5gvk/MiuraStation-dist/issues) · [English summary](#english-summary)**
 
 </div>
 
@@ -564,6 +564,132 @@ muestra su dirección. Para fijar la contraseña de administración, ejecuta el
 instalador con la variable `TLM_PASSWORD`
 (`curl -fsSL …/install-miurastation.sh | sudo TLM_PASSWORD='…' bash`). Cada vez
 que vuelves a ejecutar el instalador, el panel se actualiza.
+
+---
+
+## DMR Tier III (opcional)
+
+Además de TETRA, la misma Raspberry Pi 5 con SXceiver puede funcionar como
+**estación DMR Tier III (trunking)** con la pila de **Rafa EA7KEN**:
+MMDVM-Multi (abre la SDR y reparte hasta 4 canales de 25 kHz), MMDVM-IQ (módem
+por software de cada canal), MMDVM-Host, dmrtc (controlador Tier III: registro
+de radios, canal de control, asignación de canales de voz, SMS, DGNA) y
+DMRGateway (pasarela hacia un máster Homebrew con trunking, como un servidor ADN
+Tier III o BrandMeister). Se distribuye como un paquete Debian aparte,
+`dmr-tier3`, que se instala junto a MiuraStation, y desde el panel
+tetra-live-monitor se conmuta entre TETRA y DMR. **No funcionan a la vez**: las
+dos usan el SX1255, así que arrancar una para la otra (`Conflicts=` en
+systemd) y solo una de las dos puede quedar habilitada al arranque.
+
+> **Pre-release.** La pila está validada en una Pi 5 sin radios (arranque,
+> canal de control en el aire y pasarela conectada a un ADN Tier III); falta la
+> prueba con radios DMR Tier III. Hasta entonces cada versión se publica como
+> pre-release `dmr-tier3-vX.Y.Z` en
+> [Releases](https://github.com/ea5gvk/MiuraStation-dist/releases), aparte de
+> las `vX.Y.Z` de MiuraStation y nunca como "latest".
+
+### Requisitos
+
+- Raspberry Pi 5 con Raspberry Pi OS de 64 bits basado en Debian 13 (Trixie;
+  el paquete depende de sus librerías, en Bookworm no instala) y SXceiver
+  (SX1255). La pila abre la SDR con el módulo SoapySX que instala MiuraStation
+  (`driver=sx`); no hay versión para PC ni para LimeSDR.
+- MiuraStation con el panel tetra-live-monitor (para instalar y conmutar desde
+  el panel) y red: `apt` baja las dependencias (Qt5, liquid-dsp, SoapySDR...)
+  de los repositorios de Debian, unos 100 MB la primera vez.
+- Un ID DMR y, para la pasarela, un sitio dado de alta en el máster (ID del
+  sitio y contraseña).
+
+### Instalación
+
+Desde el panel (puerto 5000): **Instalar DMR** descarga el `.deb` de la última
+release `dmr-tier3-vX.Y.Z`, comprueba `SHA256SUMS` y lo instala con `apt`;
+**CONFIG DMR** rellena indicativo, ID, frecuencias y pasarela; y el selector de
+estación pasa de TETRA a DMR y vuelve. Instalar no arranca nada ni toca la
+configuración de MiuraStation.
+
+A mano, como root, con el `.deb` de la release:
+
+```bash
+apt-get install ./dmr-tier3_X.Y.Z-1_arm64.deb
+nano /etc/dmr-tier3/dmr-tier3.conf          # CALLSIGN, DMR_ID, frecuencias, pasarela
+python3 /opt/dmr-tier3/bin/gen-config.py    # valida, imprime el plan de canales y escribe los .ini y dmrtc.cfg
+systemctl stop miurastation && systemctl start dmr-tier3.target   # TETRA → DMR
+systemctl stop dmr-tier3.target && systemctl start miurastation   # DMR → TETRA
+```
+
+Después de cada cambio en el conf: parar `dmr-tier3.target`, `gen-config.py` y
+arrancar otra vez (dmrtc reescribe su configuración al salir; por eso siempre
+parado antes). Para que la DMR arranque sola tras un reinicio,
+`systemctl disable miurastation && systemctl enable dmr-tier3.target` (y lo
+contrario para volver); nunca las dos habilitadas. Actualizar es instalar el
+`.deb` nuevo: el conf se conserva. `apt-get remove dmr-tier3` quita la pila y
+deja `/etc/dmr-tier3` y `/var/lib/dmr-tier3`; `apt-get purge` los borra también.
+
+| Ruta | Contenido |
+|---|---|
+| `/etc/dmr-tier3/dmr-tier3.conf` | El único fichero que se edita (`CLAVE=VALOR`, comentado clave por clave en `dmr-tier3.conf.example`); nunca se sobrescribe |
+| `/etc/dmr-tier3/*.ini` | Configuración de cada programa, generada por `gen-config.py` (no editar) |
+| `/opt/dmr-tier3/bin/` | Los cinco programas y `gen-config.py` |
+| `/var/lib/dmr-tier3/` | Datos de dmrtc (`.config/dmrtc/dmrtc.cfg` y `dmrtc.log`) y tablas de MMDVM-Host |
+| `/usr/share/doc/dmr-tier3/` | Manual completo (`README.md`), `copyright` y `changelog.gz` |
+
+### Parámetros principales
+
+Una sola frecuencia por sentido, la del canal 1 (centro de la SDR): los demás
+canales salen a ±25 kHz de ella y `gen-config.py` imprime la tabla resultante.
+Con los valores de ejemplo (3 canales, control en el 2 y salto TX−RX de 7,6 MHz,
+el mismo que la TETRA de la misma Pi, que comparte antena y duplexor):
+
+| Canal | TX (bajada) | RX (subida) | |
+|---|---|---|---|
+| 1 | 438.425 MHz | 430.825 MHz | |
+| 2 | 438.450 MHz | 430.850 MHz | canal de control |
+| 3 | 438.400 MHz | 430.800 MHz | |
+
+| Clave | Ejemplo | Qué es |
+|---|---|---|
+| `CALLSIGN`, `DMR_ID` | | Indicativo e ID DMR del sitio (obligatorios) |
+| `N_CHANNELS`, `CONTROL_CHANNEL` | `3`, `2` | Canales de 25 kHz (1-4) y cuál lleva el canal de control |
+| `TX_FREQUENCY`, `RX_FREQUENCY` | `438425000`, `430825000` | Frecuencias del canal 1 en Hz (bajada y subida) |
+| `FREQ_BASE` | `430000000` | Base del plan de canales que se anuncia a las radios: LCN = (TX − base) / 25000 + 1 (con el ejemplo, 338, 339 y 337) |
+| `SYSTEM_CODE`, `COLOUR_CODE` | `8`, `0` | Código de sistema y colour code, los mismos que lleve el codeplug de las radios |
+| `REGISTRATION_REQUIRED`, `AUTHENTICATION_REQUIRED` | `1`, `0` | Registro obligatorio; autenticación por radio desactivada |
+| `GATEWAY_ENABLED`, `NET_ADDRESS`, `NET_PORT` | `1`, `10.33.1.50`, `62037` | Pasarela hacia un máster Homebrew con trunking Tier III (ADN Tier III, BrandMeister...); `0` = sitio aislado, sin pasarela |
+| `NET_ID`, `NET_PASSWORD` | | ID del sitio en el máster (ID del titular más dos cifras) y su contraseña |
+| `TG_ROUTING` | `1:0,2:0` | Grupos de conversación y pasarela por la que salen (`tg:pasarela`) |
+| `RX_GAIN`, `TX_GAIN`, `DIGITAL_GAIN` | `50`, `30`, `35` | Ganancias de la SX1255 y del módem |
+| `LOG_LEVEL`, `DISPLAY_LEVEL`, `MULTI_DISPLAY_LEVEL` | `1`, `2`, `2` | Detalle del log de dmrtc y de los MMDVM-* |
+
+Radios: DMR Tier III (Hytera, o Motorola con CapMax en "Open System") con
+`SYSTEM_CODE`, colour code y el plan de canales (`FREQ_BASE` / LCN) en el
+codeplug.
+
+### Registros
+
+Todo va al journal, una unidad por programa:
+
+```bash
+journalctl -f -u mmdvm-multi -u 'mmdvm-iq@*' -u 'mmdvm-host@*' -u dmrtc -u dmrgateway
+systemctl list-units 'mmdvm-*' 'dmr*'
+```
+
+dmrtc escribe además `/var/lib/dmr-tier3/.config/dmrtc/dmrtc.log` (registros,
+llamadas, SMS), que logrotate rota al pasar de 20 MB (5 copias). Señales de que
+va bien: `TX ON` en `mmdvm-multi`, `Status server listening on 127.0.0.1:4939`
+en `dmrtc` (el servidor de estado local del que el panel saca los datos de la
+DMR) y `Logged into the master successfully` en `dmrgateway`.
+
+### Fuentes y licencias
+
+MMDVM-Multi, MMDVM-IQ, MMDVM-Host y DMRGateway son GPL-2 (Jonathan Naylor G4KLX
+y otros); dmrtc es GPL-3 (Adrian Musceac YO8RZZ); las unidades systemd, el
+generador de configuración y el empaquetado son Apache 2.0. Cada release lleva,
+junto al `.deb`, el tarball de binarios
+`dmr-tier3-X.Y.Z-<commit>-aarch64.tar.gz`, el de fuentes
+`dmr-tier3-X.Y.Z-src.tar.gz` (el árbol de EA7KEN del commit indicado más los
+parches aplicados) y `SHA256SUMS` de los tres. Los avisos de licencia están en
+`/usr/share/doc/dmr-tier3/copyright` y `/opt/dmr-tier3/share/licenses/`.
 
 ---
 
