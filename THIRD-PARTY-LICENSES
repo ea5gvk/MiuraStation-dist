@@ -8603,7 +8603,7 @@ Rust standard library (std, core, alloc and their dependencies): copyright notic
 
 The Rust standard library is statically linked into the binary. It is licensed under the
 MIT license or the Apache License 2.0 (texts above); the notices below come from the
-COPYRIGHT-library.html of the Rust toolchain rustc 1.99.0 (b940084d7 2026-09-28).
+COPYRIGHT-library.html of the Rust toolchain rustc 1.99.1 (58cf8f9c3 2026-10-13).
 
 Copyright notices for The Rust Standard Library
 

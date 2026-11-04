@@ -975,3 +975,30 @@ voice_service = true
 # auth_user = "miurastation"
 # password = ""
 # realm = "asterisk"
+
+###############################################################################
+
+# OPTIONAL: TETRA and DMR Tier III at the same time on one SDR (dmr-tier3 package,
+# SDR_COMPARTIDO=1 in /etc/dmr-tier3/dmr-tier3.conf).
+#
+# MiuraStation stays the only owner of the SDR. It hands MMDVM-Multi a 150 kHz IQ window
+# (150 kS/s) of its receive signal around the DMR channels and adds the window MMDVM-Multi
+# returns to its transmit signal, through /dev/shm/miurastation-dmr. TETRA never waits for the
+# DMR stack: while it is stopped or late the window transmits zeros.
+#
+# Do not write this section by hand: gen-config.py of the dmr-tier3 package writes it (always as
+# the last block of this file, between its "# >>> dmr-tier3" and "# <<< dmr-tier3" marker lines)
+# after checking it against the carriers and sample rate here; restart MiuraStation to apply it.
+# Absent = off. Only in Bs mode with the SoapySdr backend. At start the PHY checks it against the
+# real SDR: each window centre within sample_rate / 2 - 75 kHz of its LO (the TX centre, and
+# rx_center_freq - 20 kHz) and no DMR channel within 25 kHz of a TETRA carrier. If a check fails
+# it logs an error and TETRA runs alone.
+# The DMR channels count as carriers in the TX digital back-off (2/N from three carriers on): with
+# 3 TETRA + 3 DMR every TETRA carrier is 6 dB lower than with TETRA alone.
+# A binary older than 1.4.0 refuses to start with this section: remove it (SDR_COMPARTIDO=0)
+# before rolling back.
+#
+# [dmr_window]
+# tx_freq = 438137500     # TX window centre in Hz: TX_FREQUENCY - 12500 of the DMR stack (nominal, ppm_err is applied)
+# rx_freq = 433137500     # RX window centre in Hz: RX_FREQUENCY - 12500
+# carriers = 3            # DMR channels in the window (1..=4), at +12.5, +37.5, -12.5, -37.5 kHz from its centre

@@ -6,6 +6,47 @@ All notable changes to MiuraStation are documented in this file.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la numeración sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.0] - 2026-11-04
+
+TETRA y DMR Tier III a la vez con una sola SDR: con el paquete `dmr-tier3` en
+modo compartido (`SDR_COMPARTIDO=1`), MiuraStation sigue siendo la única dueña
+de la SDR y le pasa a MMDVM-Multi una ventana IQ de 150 kHz alrededor de los
+canales DMR, en recepción y en transmisión. Sin la sección nueva
+`[dmr_window]` todo funciona exactamente como en 1.3.0.
+
+*English summary: TETRA and DMR Tier III at the same time on one SDR. With the
+dmr-tier3 package in shared mode, MiuraStation keeps the SDR and shares a
+150 kHz IQ window around the DMR channels with MMDVM-Multi through
+`/dev/shm/miurastation-dmr`, on receive and on transmit. Without the new
+`[dmr_window]` section nothing changes. TETRA never waits for the DMR stack:
+while it is stopped, late or sends garbage, the window transmits zeros.*
+
+### Añadido
+
+- Sección `[dmr_window]` en `config.toml` (`tx_freq`, `rx_freq`, `carriers`):
+  la escribe `gen-config.py` del paquete `dmr-tier3`, no se edita a mano.
+  Ausente = desactivada. Un binario anterior a 1.4.0 no arranca con ella:
+  antes de volver atrás, `SDR_COMPARTIDO=0`.
+- Ventana DMR en el PHY (solo modo BS): el banco de filtros de recepción saca
+  la ventana de 150 kS/s y la publica en bloques de 1,5 ms en
+  `/dev/shm/miurastation-dmr`; la ventana que devuelve MMDVM-Multi se suma a
+  la síntesis de transmisión. Sin bloqueos ni esperas: si la parte DMR no está,
+  va tarde o manda muestras no finitas o por encima del tope, la ventana sale a
+  ceros y la TETRA no cambia.
+- Al arrancar, el PHY comprueba la ventana con la frecuencia de muestreo y los
+  LO reales (dentro de la banda de la SDR y ningún canal DMR a menos de 25 kHz
+  de una portadora TETRA). Si falla, lo registra como error y la TETRA arranca
+  sola.
+- Resumen de la ventana en el log cada minuto (bloques RX, bloques TX buenos,
+  ausentes y rechazados, adelanto del TX) y aviso cuando MMDVM-Multi se engancha
+  o se suelta.
+
+### Cambiado
+
+- Con la ventana activa, los canales DMR cuentan como portadoras en el back-off
+  digital de TX (2/N desde tres portadoras): con 3 TETRA + 3 DMR cada portadora
+  TETRA baja 6 dB respecto a la TETRA sola.
+
 ## [1.3.0] - 2026-10-12
 
 Las alertas de Telegram salen ahora en español: radios que se conectan o se
