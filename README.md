@@ -590,10 +590,14 @@ systemd) y solo una de las dos puede quedar habilitada al arranque.
 
 ### Requisitos
 
-- Raspberry Pi 5 con Raspberry Pi OS de 64 bits basado en Debian 13 (Trixie;
-  el paquete depende de sus librerías, en Bookworm no instala) y SXceiver
-  (SX1255). La pila abre la SDR con el módulo SoapySX que instala MiuraStation
-  (`driver=sx`); no hay versión para PC ni para LimeSDR.
+- Raspberry Pi 5 con Raspberry Pi OS de 64 bits basado en Debian 13 (Trixie) o
+  en Debian 12 (Bookworm), y SXceiver (SX1255). Hay un `.deb` para cada sistema,
+  con las librerías del suyo (el de uno no instala en el otro):
+  `dmr-tier3_X.Y.Z-1_arm64.deb` para Trixie y `dmr-tier3_X.Y.Z-1.deb12_arm64.deb`
+  para Bookworm (desde la 0.7.1; hasta la 0.7.0 solo había el de Trixie). Para
+  saber cuál es el de tu Pi: `grep VERSION_ID /etc/os-release` (`"13"` Trixie,
+  `"12"` Bookworm). La pila abre la SDR con el módulo SoapySX que instala
+  MiuraStation (`driver=sx`); no hay versión para PC ni para LimeSDR.
 - MiuraStation con el panel tetra-live-monitor (para instalar y conmutar desde
   el panel) y red: `apt` baja las dependencias (Qt5, liquid-dsp, SoapySDR...)
   de los repositorios de Debian, unos 100 MB la primera vez.
@@ -602,16 +606,17 @@ systemd) y solo una de las dos puede quedar habilitada al arranque.
 
 ### Instalación
 
-Desde el panel (puerto 5000): **Instalar DMR** descarga el `.deb` de la última
-release `dmr-tier3-vX.Y.Z`, comprueba `SHA256SUMS` y lo instala con `apt`;
+Desde el panel (puerto 5000): **Instalar DMR** descarga el `.deb` de tu sistema
+de la última release `dmr-tier3-vX.Y.Z`, comprueba `SHA256SUMS` y lo instala con `apt`;
 **CONFIG DMR** rellena indicativo, ID, frecuencias y pasarela; y el selector de
 estación pasa de TETRA a DMR y vuelve. Instalar no arranca nada ni toca la
 configuración de MiuraStation.
 
-A mano, como root, con el `.deb` de la release:
+A mano, como root, con el `.deb` de la release que toque a tu sistema:
 
 ```bash
-apt-get install ./dmr-tier3_X.Y.Z-1_arm64.deb
+apt-get install ./dmr-tier3_X.Y.Z-1_arm64.deb          # Trixie
+apt-get install ./dmr-tier3_X.Y.Z-1.deb12_arm64.deb    # Bookworm
 nano /etc/dmr-tier3/dmr-tier3.conf          # CALLSIGN, DMR_ID, frecuencias, pasarela
 python3 /opt/dmr-tier3/bin/gen-config.py    # valida, imprime el plan de canales y escribe los .ini y dmrtc.cfg
 systemctl stop miurastation && systemctl start dmr-tier3.target   # TETRA → DMR
@@ -685,10 +690,11 @@ DMR) y `Logged into the master successfully` en `dmrgateway`.
 MMDVM-Multi, MMDVM-IQ, MMDVM-Host y DMRGateway son GPL-2 (Jonathan Naylor G4KLX
 y otros); dmrtc es GPL-3 (Adrian Musceac YO8RZZ); las unidades systemd, el
 generador de configuración y el empaquetado son Apache 2.0. Cada release lleva,
-junto al `.deb`, el tarball de binarios
-`dmr-tier3-X.Y.Z-<commit>-aarch64.tar.gz`, el de fuentes
-`dmr-tier3-X.Y.Z-src.tar.gz` (el árbol de EA7KEN del commit indicado más los
-parches aplicados) y `SHA256SUMS` de los tres. Los avisos de licencia están en
+junto a los dos `.deb`, el tarball de binarios de cada sistema
+(`dmr-tier3-X.Y.Z-<commit>-aarch64.tar.gz` el de Trixie y
+`dmr-tier3-X.Y.Z-<commit>-aarch64-deb12.tar.gz` el de Bookworm), un único tarball
+de fuentes `dmr-tier3-X.Y.Z-src.tar.gz` (el árbol de EA7KEN del commit indicado
+más los parches aplicados) y `SHA256SUMS` de todos. Los avisos de licencia están en
 `/usr/share/doc/dmr-tier3/copyright` y `/opt/dmr-tier3/share/licenses/`.
 
 ---
