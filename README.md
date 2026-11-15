@@ -665,6 +665,7 @@ el mismo que la TETRA de la misma Pi, que comparte antena y duplexor):
 | `TG_ROUTING` | `1:0,2:0` | Grupos de conversación y pasarela por la que salen (`tg:pasarela`) |
 | `RX_GAIN`, `TX_GAIN`, `DIGITAL_GAIN` | `50`, `30`, `35` | Ganancias de la SX1255 y del módem |
 | `LOG_LEVEL`, `DISPLAY_LEVEL`, `MULTI_DISPLAY_LEVEL` | `1`, `2`, `2` | Detalle del log de dmrtc y de los MMDVM-* |
+| `MIURA_UNIT`, `MIURA_CONFIG`, `MIURA_BIN` | `miurastation.service`, `/root/miurastation/config.toml`, vacío | La estación TETRA con la que la DMR comparte o se turna la SDR (desde dmr-tier3 0.8.0): su servicio, su `config.toml` y su binario (vacío = el del servicio). Solo hay que cambiarlas si tu estación TETRA es otra instalación de MiuraStation con otro nombre de servicio o en otras rutas; `gen-config.py` ajusta entonces las dependencias de systemd para ese servicio |
 
 Radios: DMR Tier III (Hytera, o Motorola con CapMax en "Open System") con
 `SYSTEM_CODE`, colour code y el plan de canales (`FREQ_BASE` / LCN) en el
