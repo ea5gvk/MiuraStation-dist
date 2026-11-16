@@ -6,6 +6,49 @@ All notable changes to MiuraStation are documented in this file.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la numeración sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.1] - 2026-11-16
+
+El medidor de calidad de TX del panel (EVM, fuga de portadora, IQ, DC y banda
+ocupada) mide ahora la portadora TETRA como un analizador vectorial según ETSI:
+con filtro adaptado RRC. Una señal correcta lee ~1-2 % de EVM en lugar de
+~13 %, y la DMR u otras portadoras de la banda ya no cuentan como error. La
+señal transmitida no cambia.
+
+*English summary: the TX quality meter now measures the TETRA carrier the way
+an ETSI vector analyser does (RRC matched filter): a correct signal reads
+~1-2 % EVM instead of ~13 %, and DMR or other carriers in the band no longer
+count as error. Leakage, IQ imbalance, DC and OBW are now those of the
+measured carrier. The transmitted signal does not change.*
+
+### Corregido
+
+- EVM: la portadora medida (la más fuerte de las configuradas) se baja a cero
+  con la frecuencia exacta en la que la colocó el banco de síntesis (redondeada
+  a su bin de ~500 Hz, no la nominal) y pasa por un filtro adaptado RRC (roll-off
+  0,35, 6 símbolos) antes de muestrear los símbolos. Antes se muestreaba la señal
+  compuesta sin filtro: la propia interferencia entre símbolos del pulso TETRA
+  daba ~13 % con una portadora perfecta, y la ventana DMR o las demás portadoras
+  subían la lectura al 30-37 %. Como en la definición de precisión de modulación
+  de TETRA, el residuo de portadora se informa aparte y no cuenta en el EVM.
+- Fuga de portadora, desequilibrio IQ (amplitud y fase) y DC I/Q: salen del
+  ajuste por mínimos cuadrados de los símbolos de esa portadora
+  (y = mu·x + nu·conj(x) + c), como hacen los analizadores vectoriales. Antes se
+  calculaban sobre toda la señal compuesta alrededor del LO y no significaban
+  nada con la portadora desplazada o centrada en el LO (fuga de -13 dB y fase IQ
+  de hasta 20° con una señal perfecta). Mismos campos, unidades y signos; el DC
+  es ahora una fracción de la amplitud de la portadora.
+- Banda ocupada (99 %): la de la portadora medida, dentro de ±25 kHz de ella;
+  con otra portadora o un canal DMR a menos de 37,5 kHz, el margen se queda a
+  12,5 kHz de esa señal (±12,5 kHz con una vecina a 25 kHz), así que la vecina
+  no cuenta y una portadora limpia lee ~20-22 kHz. Antes se medía desde el
+  centro de la SDR y con la portadora desplazada y la DMR activa llegaba a
+  ~400 kHz.
+- Con varias portadoras de igual nivel el medidor se queda en la misma (potencias
+  suavizadas y 3 dB de histéresis): antes saltaba de una a otra en cada bloque y la
+  constelación y la banda ocupada se vaciaban.
+- Panel de la estación: EVM bueno por debajo del 5 %, aviso hasta el 10 % (límite
+  ETSI) y malo por encima; la banda ocupada lleva la portadora en lugar de "agg".
+
 ## [1.4.0] - 2026-11-04
 
 TETRA y DMR Tier III a la vez con una sola SDR: con el paquete `dmr-tier3` en
